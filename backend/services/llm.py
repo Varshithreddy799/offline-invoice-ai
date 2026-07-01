@@ -1,11 +1,10 @@
 import json
-import re
 import logging
 import multiprocessing
 from pathlib import Path
 from typing import Generator
 
-from config import DEFAULT_MODEL_PATH, MODEL_CONTEXT, MODEL_THREADS
+from config import DEFAULT_MODEL_PATH, MODEL_CONTEXT, MODEL_THREADS, USE_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,10 @@ class LLMService:
         self.context_size = context_size
         self.threads = threads if threads > 0 else multiprocessing.cpu_count()
         self.model = None
-        self._load_model()
+        if USE_MODEL:
+            self._load_model()
+        else:
+            logger.info("LLM model loading disabled via USE_MODEL=false")
 
     def _load_model(self):
         if not self.model_path.exists():
@@ -166,7 +168,7 @@ class LLMService:
 
         if not self.is_loaded:
             return {
-                "error": "Model not loaded. Place a GGUF model in the models/ directory."
+                "error": "Model not loaded. Place a GGUF model in the models/ directory or set USE_MODEL=false."
             }
 
         if not ocr_text or not ocr_text.strip():

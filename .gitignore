@@ -27,6 +27,7 @@ database/*.db-wal
 # Node
 node_modules/
 dist/
+frontend/dist/
 
 # IDE
 .vscode/
@@ -49,3 +50,6 @@ models/
 # Temporary Files
 *.tmp
 *.bak
+
+# Docker
+.docker/

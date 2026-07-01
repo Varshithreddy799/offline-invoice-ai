@@ -3,7 +3,7 @@ import multiprocessing
 
 from fastapi import APIRouter
 
-from config import DEFAULT_MODEL_PATH
+from config import DEFAULT_MODEL_PATH, is_deploy, USE_MODEL, USE_OCR
 from database import get_invoice_stats
 from schemas import HealthResponse
 

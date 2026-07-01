@@ -8,12 +8,12 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import StreamingResponse
 
-from config import UPLOAD_DIR
+from config import UPLOAD_DIR, USE_MODEL, USE_OCR
 from database import create_invoice, update_invoice, get_invoice
-from services.ocr import extract_text, SUPPORTED_EXTENSIONS
+from services.ocr import extract_text, SUPPORTED_EXTENSIONS, OCR_AVAILABLE
 from services.llm import LLMService
 from services.storage import export_invoice_json, export_invoice_csv, get_ocr_text
-from schemas import UploadResponse, InvoiceDetailResponse, ErrorResponse
+from schemas import UploadResponse
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +55,18 @@ async def process_invoice(invoice_id: int):
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    if not llm_service or not llm_service.is_loaded:
-        update_invoice(invoice_id, status="error", error_message="Local model missing. Place a GGUF model in models/")
-        raise HTTPException(status_code=503, detail="Local model missing. Place a GGUF model in the models/ directory.")
+    if not USE_MODEL or not llm_service or not llm_service.is_loaded:
+        error_msg = (
+            "Model not available. Place a GGUF model in models/ "
+            "or set USE_MODEL=false if running without AI."
+        )
+        update_invoice(invoice_id, status="error", error_message=error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
+
+    if not USE_OCR or not OCR_AVAILABLE:
+        error_msg = "OCR not available. Install Tesseract and Poppler, or set USE_OCR=false."
+        update_invoice(invoice_id, status="error", error_message=error_msg)
+        raise HTTPException(status_code=503, detail=error_msg)
 
     start_time = time.time()
     cpu_start = psutil.cpu_percent(interval=None)
@@ -128,8 +137,11 @@ async def process_invoice_stream(invoice_id: int):
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    if not llm_service or not llm_service.is_loaded:
-        raise HTTPException(status_code=503, detail="Local model missing")
+    if not USE_MODEL or not llm_service or not llm_service.is_loaded:
+        raise HTTPException(status_code=503, detail="Model not available")
+
+    if not USE_OCR or not OCR_AVAILABLE:
+        raise HTTPException(status_code=503, detail="OCR not available")
 
     async def event_generator():
         yield f"data: {json.dumps({'type': 'status', 'message': 'Starting OCR...'})}\n\n"

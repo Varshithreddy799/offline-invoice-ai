@@ -8,3 +8,5 @@ Pillow==10.1.0
 llama-cpp-python==0.2.55
 psutil==5.9.8
 python-dotenv==1.0.0
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9

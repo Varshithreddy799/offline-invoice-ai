@@ -1,4 +1,20 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: invoice_user
+      POSTGRES_PASSWORD: invoice_pass
+      POSTGRES_DB: invoice_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U invoice_user -d invoice_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -7,12 +23,18 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models
-      - ./database:/app/database
       - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
+      - DATABASE_URL=postgresql://invoice_user:invoice_pass@db:5432/invoice_db
+      - DOCKER=true
       - LLM_MODEL_PATH=/app/models/phi-3-mini-4k-instruct-q4.gguf
       - MODEL_CONTEXT=2048
       - MODEL_THREADS=0
+      - USE_MODEL=true
+      - USE_OCR=true
     deploy:
       resources:
         limits:
@@ -24,8 +46,11 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
       - backend
     environment:
       - VITE_API_URL=http://localhost:8000
+
+volumes:
+  pgdata:

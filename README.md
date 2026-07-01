@@ -1,11 +1,31 @@
 # Offline Invoice Structurer AI
 
-Convert invoice/receipt images or PDFs into structured JSON — **completely offline** on your local machine. No cloud APIs, no data leaves your computer.
+Convert invoice/receipt images or PDFs into structured JSON — **completely offline** on your local machine. No cloud APIs, no data leaves your computer. Also deployable to **Render** with PostgreSQL.
 
 ## Architecture
 
 ```
-Image/PDF  →  OCR (Tesseract)  →  Clean Text  →  Local LLM (GGUF)  →  Structured JSON  →  SQLite  →  Dashboard
+                       ┌─────────────────┐
+                       │   Frontend       │
+                       │  React + Vite    │
+                       └────────┬────────┘
+                                │ HTTP / REST
+                       ┌────────▼────────┐
+                       │   Backend        │
+                       │   FastAPI        │
+                       └──┬──────────┬───┘
+                          │          │
+              ┌───────────▼──┐  ┌───▼────────────┐
+              │  OCR Service  │  │  LLM Service    │
+              │  (Tesseract)  │  │  (llama.cpp)    │
+              └───────────────┘  └────────────────┘
+                          │          │
+                          └────┬─────┘
+                               │
+                      ┌────────▼────────┐
+                      │   Database       │
+                      │  SQLite / PG     │
+                      └─────────────────┘
 ```
 
 ## Features
@@ -14,7 +34,7 @@ Image/PDF  →  OCR (Tesseract)  →  Clean Text  →  Local LLM (GGUF)  →  St
 - **Multi-format Upload** — JPG, PNG, JPEG, PDF (drag & drop)
 - **OCR Pipeline** — Grayscale, thresholding, denoise preprocessing
 - **AI Extraction** — Local LLM extracts structured invoice data
-- **SQLite Storage** — All data stored locally in SQLite
+- **SQLite / PostgreSQL** — SQLite locally, PostgreSQL on Render
 - **Search & Filter** — Search by vendor, date, or invoice number
 - **Export** — JSON, CSV, and raw OCR text download
 - **Dark Mode UI** — Modern responsive interface with Tailwind CSS
@@ -26,13 +46,13 @@ Image/PDF  →  OCR (Tesseract)  →  Clean Text  →  Local LLM (GGUF)  →  St
 |-----------|-----------|
 | Backend   | Python, FastAPI |
 | Frontend  | React, Vite, Tailwind CSS |
-| Database  | SQLite |
+| Database  | SQLite (local) / PostgreSQL (Render) |
 | OCR       | Tesseract (pytesseract + pdf2image) |
 | LLM       | llama.cpp Python bindings (GGUF models) |
 
 ## Model Download
 
-The app requires a local GGUF model. Recommended models (choose one):
+The app requires a local GGUF model for AI extraction. Recommended models:
 
 | Model | Size | Link |
 |-------|------|------|
@@ -56,13 +76,8 @@ The app requires a local GGUF model. Recommended models (choose one):
 ### Windows Setup
 
 ```powershell
-# Install Tesseract
 winget install UB-Mannheim.TesseractOCR
-# or download from: https://github.com/UB-Mannheim/tesseract/wiki
-
-# Install Poppler
 winget install omar.ahsan.poppler
-# or download from: https://github.com/oschwartz10612/poppler-windows/releases/
 ```
 
 ### macOS Setup
@@ -77,56 +92,100 @@ brew install tesseract poppler
 sudo apt install tesseract-ocr poppler-utils
 ```
 
-## Installation
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RENDER` | `false` | Set to `true` on Render deployment |
+| `DOCKER` | `false` | Set to `true` in Docker |
+| `HOST` | `0.0.0.0` | Server bind address |
+| `PORT` | `8000` | Server port |
+| `DATABASE_URL` | *(empty)* | PostgreSQL connection string (empty = SQLite) |
+| `UPLOAD_DIR` | `./uploads` | Upload directory path |
+| `MODELS_DIR` | `./models` | GGUF models directory |
+| `DATABASE_DIR` | `./database` | SQLite database directory |
+| `USE_MODEL` | `true` | Set to `false` to disable LLM loading |
+| `LLM_MODEL_NAME` | `phi-3-mini-4k-instruct-q4.gguf` | GGUF filename |
+| `LLM_MODEL_PATH` | `./models/...` | Full path to GGUF model |
+| `MODEL_CONTEXT` | `2048` | LLM context window size |
+| `MODEL_THREADS` | `0` | CPU threads (0 = auto) |
+| `USE_OCR` | `true` | Set to `false` to disable OCR |
+| `OCR_LANGUAGE` | `eng` | Tesseract language |
+| `TESSERACT_PATH` | *(empty)* | Path to Tesseract executable |
+| `POPPLER_PATH` | *(empty)* | Path to Poppler bin directory |
+
+## Local Setup
 
 ### Backend
 
 ```bash
-# Navigate to project root
 cd offline-invoice-ai
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# venv\Scripts\activate   # Windows
-
-# Install dependencies
+# Windows: venv\Scripts\activate
+# Linux/macOS: source venv/bin/activate
 pip install -r backend/requirements.txt
+
+# Place a GGUF model in models/
+cd backend
+uvicorn main:app --reload
 ```
+
+API at `http://localhost:8000` | Docs at `http://localhost:8000/docs`
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-## Running Locally
-
-### 1. Place a GGUF model in `models/`
-
-```bash
-# Example: Phi-3 Mini
-# Download phi-3-mini-4k-instruct-q4.gguf and place in models/
-```
-
-### 2. Start the backend
-
-```bash
-cd backend
-uvicorn main:app --reload
-```
-
-The API will be available at `http://localhost:8000`
-
-### 3. Start the frontend
-
-```bash
-cd frontend
 npm run dev
 ```
 
-The UI will be available at `http://localhost:5173`
+UI at `http://localhost:5173`
+
+## Docker Setup
+
+```bash
+# Build and run with PostgreSQL
+docker-compose up --build
+```
+
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
+
+### Docker without GPU
+
+Docker does not have access to your host GPU by default. For CPU-only inference, the app works fine in Docker containers.
+
+## Render Deployment
+
+### One-click deploy
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+### Manual deployment
+
+1. Push the project to GitHub
+2. In Render Dashboard:
+   - **New Web Service** (Backend):
+     - Build Command: `pip install -r backend/requirements.txt`
+     - Start Command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+     - Add a PostgreSQL database
+     - Set `RENDER=true`, `DATABASE_URL` to the PostgreSQL connection string
+     - Set `USE_MODEL=false`, `USE_OCR=false`
+   - **New Static Site** (Frontend):
+     - Build Command: `cd frontend && npm install && npm run build`
+     - Publish Directory: `frontend/dist`
+     - Set `VITE_API_URL` to your backend URL
+
+> **Note:** On Render, the GGUF model and Tesseract OCR are disabled by default.
+> The API will still accept uploads, store data, and return meaningful errors
+> for endpoints that require AI/OCR.
 
 ## API Endpoints
 
@@ -151,12 +210,6 @@ The UI will be available at `http://localhost:5173`
 - **Context size: 2048** — Optimal balance for invoice processing
 - **No GPU required** — Runs entirely on CPU
 
-Configure via `.env`:
-```
-MODEL_THREADS=0    # 0 = auto-detect CPU cores
-MODEL_CONTEXT=2048 # Context window size
-```
-
 ## Project Structure
 
 ```
@@ -164,7 +217,7 @@ offline-invoice-ai/
 ├── backend/
 │   ├── main.py              # FastAPI app entry point
 │   ├── config.py            # Configuration & environment
-│   ├── database.py          # SQLite operations
+│   ├── database.py          # SQLite / PostgreSQL operations
 │   ├── schemas.py           # Pydantic models
 │   ├── services/
 │   │   ├── ocr.py           # OCR preprocessing & extraction
@@ -180,19 +233,43 @@ offline-invoice-ai/
 │   │   ├── App.jsx          # Root component with routing
 │   │   ├── api.js           # API client
 │   │   └── components/
-│   │       ├── Dashboard.jsx      # Stats, search, invoice list
-│   │       ├── Upload.jsx         # Drag & drop upload
-│   │       ├── InvoiceViewer.jsx  # JSON/OCR viewer with export
-│   │       ├── Navbar.jsx         # Top navigation
-│   │       └── ModelCheck.jsx     # Model status warnings
+│   │       ├── Dashboard.jsx
+│   │       ├── Upload.jsx
+│   │       ├── InvoiceViewer.jsx
+│   │       ├── Navbar.jsx
+│   │       └── ModelCheck.jsx
 │   ├── package.json
 │   └── vite.config.js
 ├── models/                  # Place GGUF models here
 ├── database/                # SQLite database location
 ├── uploads/                 # Uploaded files
+├── scripts/                 # Test and utility scripts
 ├── .env.example
 ├── docker-compose.yml
+├── Dockerfile.backend
+├── Dockerfile.frontend
+├── render.yaml
 └── README.md
+```
+
+## Screenshots
+
+<!-- TODO: Add screenshots -->
+<!-- ![Dashboard](screenshots/dashboard.png) -->
+<!-- ![Upload](screenshots/upload.png) -->
+<!-- ![Invoice Viewer](screenshots/invoice-viewer.png) -->
+
+## Testing
+
+```bash
+# Start backend
+cd backend && uvicorn main:app --reload &
+
+# Generate a sample invoice
+python scripts/generate_sample_invoice.py
+
+# Run API tests
+python scripts/test_api.py ../uploads/sample_invoice.png
 ```
 
 ## Error Handling
@@ -206,36 +283,8 @@ The app gracefully handles:
 - **Corrupt images** → PIL/Pillow error handling
 - **No model present** → "Local model missing" message with instructions
 - **Empty files** → Size validation on upload
-
-## Docker Support
-
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-```
-
-**Note:** Docker does not have access to your host GPU by default. For CPU-only inference, the app works fine in Docker containers.
-
-## Testing
-
-```bash
-# Start backend
-cd backend && uvicorn main:app --reload &
-
-# Test health endpoint
-curl http://localhost:8000/health
-
-# Upload a test invoice
-curl -X POST -F "file=@sample_invoice.jpg" http://localhost:8000/upload
-
-# Process it (replace {id} with actual invoice ID)
-curl -X POST http://localhost:8000/process/{id}
-```
+- **Render deployment** → Meaningful JSON errors instead of crashes
 
 ## License
 
 MIT
-
-## Hackathon Project
-
-This project was built for an offline-first AI hackathon. The core idea: **AI should work without the cloud.** By combining local OCR with a quantized LLM running via llama.cpp, we get structured data extraction from documents without sending sensitive financial data to any external service.

@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: offline-invoice-ai-backend
+    runtime: python
+    repo: https://github.com/YOUR_USERNAME/offline-invoice-ai
+    plan: starter
+    region: oregon
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-db
+          property: connectionString
+      - key: RENDER
+        value: "true"
+      - key: USE_MODEL
+        value: "false"
+      - key: USE_OCR
+        value: "false"
+      - key: UPLOAD_DIR
+        value: "/var/data/uploads"
+      - key: MODELS_DIR
+        value: "/var/data/models"
+      - key: MODEL_CONTEXT
+        value: "2048"
+      - key: CORS_ORIGINS
+        value: "*"
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+
+  - type: web
+    name: offline-invoice-ai-frontend
+    runtime: static
+    repo: https://github.com/YOUR_USERNAME/offline-invoice-ai
+    plan: starter
+    region: oregon
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://offline-invoice-ai-backend.onrender.com
+
+databases:
+  - name: invoice-db
+    plan: starter
+    region: oregon
+    databaseName: invoice_db
+    user: invoice_user

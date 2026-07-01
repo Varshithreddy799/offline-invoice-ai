@@ -54,6 +54,7 @@ class StatsResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
     status: str
     model_loaded: bool
     model_path: str

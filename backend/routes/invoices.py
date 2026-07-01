@@ -1,8 +1,9 @@
 import logging
+import os
 from fastapi import APIRouter, HTTPException, Query
 
 from database import get_invoice, search_invoices, get_invoice_stats, delete_invoice
-from schemas import InvoiceResponse, InvoiceDetailResponse, StatsResponse, ErrorResponse
+from schemas import InvoiceResponse, InvoiceDetailResponse, StatsResponse
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,6 @@ async def delete_invoice_endpoint(invoice_id: int):
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    import os
     file_path = invoice.get("file_path")
     if file_path and os.path.exists(file_path):
         try:
