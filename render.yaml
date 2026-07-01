@@ -4,7 +4,7 @@ services:
     runtime: python
     repo: https://github.com/YOUR_USERNAME/offline-invoice-ai
     plan: starter
-    region: oregon
+    repo: https://github.com/Varshithreddy799/offline-invoice-ai
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -38,7 +38,7 @@ services:
     runtime: static
     repo: https://github.com/YOUR_USERNAME/offline-invoice-ai
     plan: starter
-    region: oregon
+    repo: https://github.com/Varshithreddy799/offline-invoice-ai
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
