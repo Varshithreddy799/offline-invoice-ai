@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Environment Variables
+.env
+
+# Logs
+*.log
+
+# SQLite Database
+database/*.db
+database/*.db-shm
+database/*.db-wal
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+backend/uploads/
+
+# AI Models
+models/
+*.gguf
+*.bin
+
+# Temporary Files
+*.tmp
+*.bak
