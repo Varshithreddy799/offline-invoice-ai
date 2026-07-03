@@ -21,9 +21,10 @@ services:
       - key: USE_OCR
         value: "false"
       - key: UPLOAD_DIR
-        value: "/var/data/uploads"
+        value: "/tmp/uploads"
+
       - key: MODELS_DIR
-        value: "/var/data/models"
+        value: "/tmp/models"
       - key: MODEL_CONTEXT
         value: "2048"
       - key: CORS_ORIGINS
