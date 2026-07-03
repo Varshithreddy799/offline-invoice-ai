@@ -4,8 +4,13 @@ services:
     runtime: python
     repo: https://github.com/Varshithreddy799/offline-invoice-ai
     plan: free
-    buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+
+    rootDir: backend
+
+    buildCommand: pip install -r requirements.txt
+
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
