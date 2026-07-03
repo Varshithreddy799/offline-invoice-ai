@@ -29,7 +29,6 @@ services:
     name: offline-invoice-ai-frontend
     runtime: static
     repo: https://github.com/Varshithreddy799/offline-invoice-ai
-    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
     envVars:
