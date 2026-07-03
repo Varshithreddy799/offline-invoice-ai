@@ -28,15 +28,18 @@ services:
         value: "2048"
       - key: CORS_ORIGINS
         value: "*"
-    
 
   - type: web
     name: offline-invoice-ai-frontend
     runtime: static
     repo: https://github.com/Varshithreddy799/offline-invoice-ai
-    buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
+
+    rootDir: frontend
+
+    buildCommand: npm install && npm run build
+
+    staticPublishPath: dist
+
     envVars:
       - key: VITE_API_URL
         value: https://offline-invoice-ai-backend.onrender.com
-
