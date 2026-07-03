@@ -23,10 +23,7 @@ services:
         value: "2048"
       - key: CORS_ORIGINS
         value: "*"
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 1
+    
 
   - type: web
     name: offline-invoice-ai-frontend
